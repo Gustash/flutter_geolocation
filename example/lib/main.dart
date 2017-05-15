@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:gps_coordinates/gps_coordinates.dart';
@@ -48,22 +49,25 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  String _platformVersion = 'Unknown';
+  Map<String, double> _coordinates = new Map();
 
   @override
   initState() {
     super.initState();
-    initPlatformState();
+    _coordinates["lat"] = _coordinates["long"] = 0.0;
   }
 
   // Platform messages are asynchronous, so we initialize in an async method.
-  initPlatformState() async {
-    String platformVersion;
+  _getCoordinates() async {
+    Map<String, double> coordinates;
     // Platform messages may fail, so we use a try/catch PlatformException.
     try {
-      platformVersion = await GpsCoordinates.platformVersion;
+      coordinates = await GpsCoordinates.gpsCoordinates;
     } on PlatformException {
-      platformVersion = "Failed to get platform version";
+      Map<String, double> placeholdCoordinates = new Map();
+      placeholdCoordinates["lat"] = 0.0;
+      placeholdCoordinates["long"] = 0.0;
+      coordinates = placeholdCoordinates;
     }
 
     // If the widget was removed from the tree while the asynchronous platform
@@ -73,17 +77,45 @@ class _MyHomePageState extends State<MyHomePage> {
       return;
 
     setState(() {
-      _platformVersion = platformVersion;
+      _coordinates = coordinates;
     });
   }
 
   @override
   Widget build(BuildContext context) {
     return new Scaffold(
-      appBar: new AppBar(
-        title: new Text('Plugin example app'),
-      ),
-      body: new Center(child: new Text('Running on: $_platformVersion\n')),
+      appBar: new AppBar(title: const Text('App Name')),
+      body: new Padding(
+        padding: const EdgeInsets.all(18.0),
+        child: new Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            new Padding(
+              padding: const EdgeInsets.only(bottom: 18.0),
+              child: new Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  new Text(
+                    _coordinates["lat"].toString()
+                  ),
+                  new Text(_coordinates["long"].toString())
+                ]
+              ),
+            ),
+            new RaisedButton(
+                key: null,
+                onPressed: buttonPressed,
+                color: Colors.blue[400],
+                colorBrightness: Brightness.dark,
+                child: new Text("UPDATE")
+            )
+          ]
+        ),
+      )
     );
+  }
+
+  void buttonPressed() {
+    _getCoordinates();
   }
 }
