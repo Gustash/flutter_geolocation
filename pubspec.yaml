@@ -1,0 +1,11 @@
+name: gps_coordinates
+description: A new flutter plugin project.
+
+flutter:
+  plugin:
+    androidPackage: com.yourcompany.gps_coordinates
+    pluginClass: GpsCoordinatesPlugin
+
+dependencies:
+  flutter:
+    sdk: flutter
