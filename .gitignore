@@ -3,7 +3,7 @@
 # Files and directories created by pub
 .packages
 .pub/
-*/build/
+build/
 # If you're building an application, you may want to check-in your pubspec.lock
 pubspec.lock
 
