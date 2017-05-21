@@ -1,0 +1,22 @@
+PODS:
+  - Flutter (1.0.0)
+  - gps_coordinates (0.0.1):
+    - Flutter
+
+DEPENDENCIES:
+  - Flutter (from `/Users/gustash/flutter/bin/cache/artifacts/engine/ios`)
+  - gps_coordinates (from `/Users/gustash/Documents/Projects/flutter_geolocation/ios`)
+
+EXTERNAL SOURCES:
+  Flutter:
+    :path: /Users/gustash/flutter/bin/cache/artifacts/engine/ios
+  gps_coordinates:
+    :path: /Users/gustash/Documents/Projects/flutter_geolocation/ios
+
+SPEC CHECKSUMS:
+  Flutter: d674e78c937094a75ac71dd77e921e840bea3dbf
+  gps_coordinates: 6fcefe24c8f1283b27ff39668842cfed97165749
+
+PODFILE CHECKSUM: cc70c01bca487bebd110b87397f017f3b76a89f1
+
+COCOAPODS: 1.2.1

@@ -1,15 +1,15 @@
 #import "GpsCoordinatesPlugin.h"
+#import <gps_coordinates/gps_coordinates-Swift.h>
 
 @implementation GpsCoordinatesPlugin
 + (void)registerWithRegistrar:(NSObject<FlutterPluginRegistrar>*)registrar {
-  FlutterMethodChannel* channel = [FlutterMethodChannel
-      methodChannelWithName:@"gps_coordinates"
-            binaryMessenger:[registrar messenger]];
-  GpsCoordinatesPlugin* instance = [[GpsCoordinatesPlugin alloc] init];
-  [registrar addMethodCallDelegate:instance channel:channel];
+    [RealGpsCoordinatesPlugin registerWithRegistrar:registrar];
 }
 
 - (void)handleMethodCall:(FlutterMethodCall*)call result:(FlutterResult)result {
+    if ([@"getGPSCoordinates" isEqualToString:call.method]) {
+        result(FlutterMethodNotImplemented);
+    }
     result(FlutterMethodNotImplemented);
 }
 

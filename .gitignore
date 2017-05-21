@@ -13,3 +13,6 @@ doc/api/
 
 # IDEA IDE files
 .idea/
+
+# macOS Files
+.DS_Store
