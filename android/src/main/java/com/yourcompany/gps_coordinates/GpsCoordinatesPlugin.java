@@ -23,9 +23,17 @@ import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.GoogleApiClient.ConnectionCallbacks;
 import com.google.android.gms.common.api.GoogleApiClient.OnConnectionFailedListener;
+import com.google.android.gms.common.api.PendingResult;
+import com.google.android.gms.common.api.ResultCallback;
+import com.google.android.gms.common.api.ResultCallbacks;
+import com.google.android.gms.common.api.Status;
 import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.location.LocationSettingsRequest;
+import com.google.android.gms.location.LocationSettingsResult;
+import com.google.android.gms.location.LocationSettingsStates;
+import com.google.android.gms.location.LocationSettingsStatusCodes;
 
 import java.util.HashMap;
 
@@ -39,8 +47,6 @@ public class GpsCoordinatesPlugin implements MethodCallHandler {
   private GoogleApiClient _client;
   private LocationRequest _locationRequest;
   private Result _result;
-  private ConnectionManager _connManager;
-  private int targetSdkVersion = 0;
   private boolean hasPermission = false;
 
   private GpsCoordinatesPlugin(Activity activity) {
@@ -59,22 +65,68 @@ public class GpsCoordinatesPlugin implements MethodCallHandler {
   public void onMethodCall(MethodCall call, Result result) {
     if (call.method.equals("getGPSCoordinates")) {
       _result = result;
-      targetSdkVersion = _activity.getApplicationInfo().targetSdkVersion;
-      if (targetSdkVersion >= 23) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-          getGPSPermission();
-        } else {
-          hasPermission = true;
-        }
-        if (hasPermission) {
-          getGPSCoordinates(_activity);
-        }
-      } else {
-        getGPSCoordinates(_activity);
-      }
+      connectToGoogleClient();
     } else {
       result.notImplemented();
     }
+  }
+
+  private void checkPermission() {
+    int targetSdkVersion = _activity.getApplicationInfo().targetSdkVersion;
+    if (targetSdkVersion >= Build.VERSION_CODES.M) {
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+        getGPSPermission();
+      } else {
+        hasPermission = true;
+      }
+    }
+
+    if (hasPermission) {
+      checkLocationEnabled();
+    }
+  }
+
+  private void connectToGoogleClient() {
+    ConnectionManager _connManager = new ConnectionManager();
+    _client = new GoogleApiClient.Builder(_activity)
+            .addConnectionCallbacks(_connManager)
+            .addOnConnectionFailedListener(_connManager)
+            .addApi(LocationServices.API)
+            .build();
+    _locationRequest = new LocationRequest()
+            .setInterval(5)
+            .setPriority(LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY);
+    _client.connect();
+  }
+
+  private void continueGPSOperation() {
+    int targetSdkVersion = _activity.getApplicationInfo().targetSdkVersion;
+    if (targetSdkVersion >= 23) {
+      if (hasPermission) {
+        getGPSCoordinates();
+      }
+    } else {
+      getGPSCoordinates();
+    }
+  }
+
+  private void getGPSCoordinates() {
+    if (LocationServices.FusedLocationApi.getLastLocation(_client) != null) {
+      Location lastKnownLocation = LocationServices.FusedLocationApi.getLastLocation(_client);
+      returnLocation(lastKnownLocation);
+    } else {
+      LocationServices.FusedLocationApi.requestLocationUpdates(_client, _locationRequest,
+              new MyLocationListener());
+    }
+  }
+
+  private void checkLocationEnabled() {
+    LocationSettingsRequest.Builder builder = new LocationSettingsRequest.Builder()
+            .addLocationRequest(_locationRequest);
+    PendingResult<LocationSettingsResult> result =
+            LocationServices.SettingsApi.checkLocationSettings(_client,
+                    builder.build());
+    result.setResultCallback(new MyLocationSettingsCallback());
   }
 
   private void getGPSPermission() {
@@ -113,23 +165,11 @@ public class GpsCoordinatesPlugin implements MethodCallHandler {
     }
   }
 
-  private void getGPSCoordinates(Context context) {
-    _connManager = new ConnectionManager();
-    _client = new GoogleApiClient.Builder(context)
-            .addConnectionCallbacks(_connManager)
-            .addOnConnectionFailedListener(_connManager)
-            .addApi(LocationServices.API)
-            .build();
-    _locationRequest = new LocationRequest()
-            .setInterval(5)
-            .setPriority(LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY);
-    _client.connect();
-  }
-
   private void returnLocation(Location location) {
     HashMap<String, Double> coordinates = new HashMap<>();
     coordinates.put("lat", location.getLatitude());
     coordinates.put("long", location.getLongitude());
+    _client.disconnect();
     _result.success(coordinates);
   }
 
@@ -137,13 +177,7 @@ public class GpsCoordinatesPlugin implements MethodCallHandler {
 
     @Override
     public void onConnected(@Nullable Bundle bundle) {
-      if (LocationServices.FusedLocationApi.getLastLocation(_client) != null) {
-        Location lastKnownLocation = LocationServices.FusedLocationApi.getLastLocation(_client);
-        returnLocation(lastKnownLocation);
-      } else {
-        LocationServices.FusedLocationApi.requestLocationUpdates(_client, _locationRequest,
-                new MyLocationListener());
-      }
+      checkPermission();
     }
 
     @Override
@@ -162,6 +196,35 @@ public class GpsCoordinatesPlugin implements MethodCallHandler {
     @Override
     public void onLocationChanged(Location location) {
       returnLocation(location);
+    }
+  }
+
+  private class MyLocationSettingsCallback implements ResultCallback<LocationSettingsResult> {
+
+    @Override
+    public void onResult(@NonNull LocationSettingsResult locationSettingsResult) {
+      final Status status = locationSettingsResult.getStatus();
+      switch (status.getStatusCode()) {
+        case LocationSettingsStatusCodes.SUCCESS:
+          // All location settings are satisfied. The client can
+          // initialize location requests here.
+          continueGPSOperation();
+          break;
+        case LocationSettingsStatusCodes.RESOLUTION_REQUIRED:
+          // Location settings are not satisfied, but this can be fixed
+          // by showing the user a dialog.
+          _result.error("LOCATION DISABLED",
+                  "This Android device has it's location disabled",
+                  null);
+          break;
+        case LocationSettingsStatusCodes.SETTINGS_CHANGE_UNAVAILABLE:
+          // Location settings are not satisfied. However, we have no way
+          // to fix the settings so we won't show the dialog.
+          _result.error("LOCATION DISABLED",
+                  "This Android device has it's location disabled",
+                  null);
+          break;
+      }
     }
   }
 }
