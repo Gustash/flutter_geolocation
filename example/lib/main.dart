@@ -62,11 +62,29 @@ class _MyHomePageState extends State<MyHomePage> {
     // Platform messages may fail, so we use a try/catch PlatformException.
     try {
       coordinates = await GpsCoordinates.gpsCoordinates;
-    } on PlatformException {
-      Map<String, double> placeholdCoordinates = new Map();
-      placeholdCoordinates["lat"] = 0.0;
-      placeholdCoordinates["long"] = 0.0;
-      coordinates = placeholdCoordinates;
+    } on PlatformException catch (e) {
+      if (e.code == "LOCATION DISABLED") {
+        showDialog(
+            context: context,
+            child: new AlertDialog(
+              title: const Text("Location disabled"),
+              content: const Text(
+                  """
+Location is disabled on this device. Please enable it and try again.
+                  """),
+              //actions: [
+              //  new FlatButton(
+              //    child: const Text("Ok"),
+              //    onPressed: _emptyMethod,
+              //  ),
+              //],
+            ),
+        );
+      }
+      Map<String, double> placeholderCoordinates = new Map();
+      placeholderCoordinates["lat"] = 0.0;
+      placeholderCoordinates["long"] = 0.0;
+      coordinates = placeholderCoordinates;
     }
 
     // If the widget was removed from the tree while the asynchronous platform
@@ -103,7 +121,7 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
             new RaisedButton(
                 key: null,
-                onPressed: buttonPressed,
+                onPressed: _buttonPressed,
                 color: Colors.blue[400],
                 colorBrightness: Brightness.dark,
                 child: new Text("UPDATE")
@@ -114,7 +132,11 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
-  void buttonPressed() {
+  void _buttonPressed() {
     _getCoordinates();
+  }
+
+  void _emptyMethod() {
+
   }
 }
