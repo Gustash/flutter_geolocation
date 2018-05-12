@@ -1,3 +1,7 @@
+## :warning: Warning
+
+This plugin is no longer supported or up to date. Please use alternatives like [geolocation](https://pub.dartlang.org/packages/geolocation) or [location](https://pub.dartlang.org/packages/location).
+
 # gps_coordinates
 
 This Flutter plugin allows you to get the device's current location.
